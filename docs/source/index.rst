@@ -131,6 +131,7 @@ Topics in this section will help you get started with ExecuTorch.
    export-to-executorch-api-reference
    executorch-runtime-api-reference
    api-life-cycle
+   runtime-python-api-refernece
 
 .. toctree::
    :glob:
