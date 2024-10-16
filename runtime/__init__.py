@@ -8,7 +8,7 @@
 
 Example usage:
 
-.. code-block:: text
+.. code-block:: python
 
     from pathlib import Path
 
