@@ -208,9 +208,15 @@ def extract_ios_metric(
 
     # NB: This looks brittle, but unless we can return iOS benchmark results in JSON
     # format by the test, the mapping is needed to match with Android test
-    if method == "load" and metric_name == "Clock Monotonic Time, s":
-        benchmark_result["metric"] = "model_load_time(ms)"
-        benchmark_result["actualValue"] = metric_value * 1000
+    if method == "load":
+        if metric_name == "Clock Monotonic Time, s":
+            benchmark_result["metric"] = "model_load_time(ms)"
+            benchmark_result["actualValue"] = metric_value * 1000
+
+        elif metric_name == "Memory Peak Physical, kB":
+            # NB: Showing the value in mB is friendlier IMO
+            benchmark_result["metric"] = "peak_load_mem_usage(mb)"
+            benchmark_result["actualValue"] = metric_value / 1024
 
     elif method == "forward":
         if metric_name == "Clock Monotonic Time, s":
@@ -223,7 +229,7 @@ def extract_ios_metric(
 
         elif metric_name == "Memory Peak Physical, kB":
             # NB: Showing the value in mB is friendlier IMO
-            benchmark_result["metric"] = "peak_mem_usage(mb)"
+            benchmark_result["metric"] = "peak_inference_mem_usage(mb)"
             benchmark_result["actualValue"] = metric_value / 1024
 
     elif method == "generate" and metric_name == "Tokens Per Second, t/s":
