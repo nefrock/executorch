@@ -7,6 +7,7 @@
 """Interface to the native C++ ExecuTorch runtime.
 
 Example usage:
+
 .. code-block:: text
 
     from pathlib import Path
@@ -28,6 +29,7 @@ Example usage:
     print(f"  outputs: {outputs}")
 
 Example output:
+
 .. code-block:: text
 
     Program methods: ('forward', 'forward2')
