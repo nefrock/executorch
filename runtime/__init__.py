@@ -107,6 +107,9 @@ class Program:
 
     @property
     def method_names(self) -> Set[str]:
+        """
+        Returns method names of the `Program` as a set of strings.
+        """
         return set(self._methods.keys())
 
     def load_method(self, name: str) -> Optional[Method]:
@@ -130,7 +133,9 @@ class OperatorRegistry:
 
     @property
     def operator_names(self) -> Set[str]:
-        """The names of all registered operators."""
+        """
+        Returns the names of all registered operators as a set of strings.
+        """
         return set(self._legacy_module._get_operator_names())
 
 
