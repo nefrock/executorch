@@ -25,10 +25,10 @@ ARTIFACTS_FILENAME_REGEX = re.compile(r"(android|ios)-artifacts-(?P<job_id>\d+).
 
 # iOS-related regexes and variables
 IOS_TEST_SPEC_REGEX = re.compile(
-    r"Test Case\s+'-\[(?P<test_class>\w+)\s+(?P<test_name>\w+)\]'\s+measured\s+\[(?P<metric>.+)\]\s+average:\s+(?P<value>[\d\.]+),"
+    r"Test Case\s+'-\[(?P<test_class>\w+)\s+(?P<test_name>[\w\+]+)\]'\s+measured\s+\[(?P<metric>.+)\]\s+average:\s+(?P<value>[\d\.]+),"
 )
 IOS_TEST_NAME_REGEX = re.compile(
-    r"test_(?P<method>forward|load|generate)_(?P<model_name>\w+)_pte.*iOS_(?P<ios_ver>\w+)_iPhone(?P<iphone_ver>\w+)"
+    r"test_(?P<method>forward|load|generate)_(?P<model_name>[\w\+]+)_pte.*iOS_(?P<ios_ver>\w+)_iPhone(?P<iphone_ver>\w+)"
 )
 # The backend name could contain +, i.e. tinyllama_xnnpack+custom+qe_fp32
 IOS_MODEL_NAME_REGEX = re.compile(
