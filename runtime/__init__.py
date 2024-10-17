@@ -4,8 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-"""Interface to the native C++ ExecuTorch runtime.
-
+"""
 Example usage:
 
 .. code-block:: python
@@ -13,7 +12,7 @@ Example usage:
     from pathlib import Path
 
     import torch
-    from executorch.runtime import Verification, Runtime
+    from executorch.runtime import Verification, Runtime, Program, Method
 
     et_runtime: Runtime = Runtime.get()
     program: Program = et_runtime.load_program(
