@@ -637,13 +637,14 @@ public class MainActivity extends AppCompatActivity implements Runnable, LlamaCa
   }
 
   private String getTotalFormattedPrompt(String conversationHistory, String rawPrompt) {
-    if (conversationHistory.isEmpty()) {
-      return mCurrentSettingsFields.getFormattedSystemAndUserPrompt(rawPrompt);
-    }
+    return mCurrentSettingsFields.getFormattedSystemAndUserPrompt(rawPrompt);
+    // if (conversationHistory.isEmpty()) {
+    //   return mCurrentSettingsFields.getFormattedSystemAndUserPrompt(rawPrompt);
+    // }
 
-    return mCurrentSettingsFields.getFormattedSystemPrompt()
-        + conversationHistory
-        + mCurrentSettingsFields.getFormattedUserPrompt(rawPrompt);
+    // return mCurrentSettingsFields.getFormattedSystemPrompt()
+    //     + conversationHistory
+    //     + mCurrentSettingsFields.getFormattedUserPrompt(rawPrompt);
   }
 
   private void onModelRunStarted() {
@@ -716,11 +717,20 @@ public class MainActivity extends AppCompatActivity implements Runnable, LlamaCa
                         false);
                   } else {
                     ETLogging.getInstance().log("Running inference.. prompt=" + finalPrompt);
-                    mModule.generate(
+                    int status = mModule.generate(
                         finalPrompt,
                         (int) (finalPrompt.length() * 0.75) + 64,
                         MainActivity.this,
                         false);
+                    if (status != 0) {
+                      Message inferenceErrorMessage = new Message("Failed to generate sentence", false, MessageType.SYSTEM, 0);
+                      runOnUiThread(
+                          () -> {
+                            mSendButton.setEnabled(true);
+                            mMessageAdapter.add(inferenceErrorMessage);
+                            mMessageAdapter.notifyDataSetChanged();
+                          });
+                    }
                   }
 
                   long generateDuration = System.currentTimeMillis() - generateStartTime;

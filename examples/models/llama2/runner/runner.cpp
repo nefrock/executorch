@@ -18,6 +18,8 @@
 #include <executorch/examples/models/llama2/tokenizer/llama_tiktoken.h>
 #include <executorch/extension/llm/tokenizer/bpe_tokenizer.h>
 
+#include <android/log.h>
+
 namespace example {
 
 using ::executorch::extension::Module;
@@ -196,17 +198,17 @@ Error Runner::generate(
 
   // encode the (string) prompt into tokens sequence
   std::vector<uint64_t> prompt_tokens = encode_res.get();
-  int num_prompt_tokens = prompt_tokens.size();
 
-  ET_CHECK_MSG(num_prompt_tokens >= 1, "Expected at least 1 prompt token");
-  ET_CHECK_MSG(
-      num_prompt_tokens < metadata_.at(kMaxSeqLen),
+  int num_prompt_tokens = prompt_tokens.size();
+  ET_CHECK_OR_RETURN_ERROR(num_prompt_tokens >= 1, Internal, "Expected at least 1 prompt token");
+  ET_CHECK_OR_RETURN_ERROR(
+      num_prompt_tokens < metadata_.at(kMaxSeqLen), Internal,
       "num_prompt_tokens %d >= max_seq_len_ %" PRId64
       ", Max seq length exceeded - please increase max seq len value in .../llama2/model.py",
       num_prompt_tokens,
       metadata_.at(kMaxSeqLen));
-  ET_CHECK_MSG(
-      num_prompt_tokens < seq_len,
+  ET_CHECK_OR_RETURN_ERROR(
+      num_prompt_tokens < seq_len, Internal,
       "num_prompt_tokens %d >= seq_len %d, Sequence length exceeded - please increase the seq_len value passed to generate()",
       num_prompt_tokens,
       seq_len);

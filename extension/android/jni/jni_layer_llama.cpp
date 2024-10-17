@@ -59,6 +59,7 @@ class ExecuTorchLlamaCallbackJni
         result.SCALING_FACTOR_UNITS_PER_SECOND;
 
     method(self(), tps);
+    print_log(result);
   }
 };
 
@@ -147,12 +148,13 @@ class ExecuTorchLlamaJni
           [callback](const llm::Stats& result) { callback->onStats(result); },
           echo);
     } else if (model_type_category_ == MODEL_TYPE_CATEGORY_LLM) {
-      runner_->generate(
+      Error status = runner_->generate(
           prompt->toStdString(),
           seq_len,
           [callback](std::string result) { callback->onResult(result); },
           [callback](const llm::Stats& result) { callback->onStats(result); },
           echo);
+      return static_cast<jint>(status);
     }
     return 0;
   }
