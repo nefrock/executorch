@@ -76,7 +76,7 @@ jobs:
           # on-demand and periodic benchmarking.
           CRON_DEFAULT_MODELS: "stories110M,mv3,mv2,ic4,ic3,resnet50,edsr,mobilebert,w2l"
           CRON_DEFAULT_DEVICES: "apple_iphone_15"
-          CRON_DEFAULT_DELEGATES: "xnnpack,coreml,mps"
+          CRON_DEFAULT_DELEGATES: "nnpack,coreml,mps"
         run: |
           set -ex
           MODELS="${{ inputs.models }}"
@@ -287,8 +287,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    # TODO: TESTING https://github.com/pytorch/test-infra/pull/5770, REVERT BEFORE SUBMITTING
-    uses: pytorch/test-infra/.github/workflows/mobile_job.yml@fix-ratelimit-mobile-jobs
+    uses: pytorch/test-infra/.github/workflows/mobile_job.yml@main
     strategy:
       matrix:
         model: ${{ fromJson(needs.set-parameters.outputs.models) }}
@@ -301,8 +300,7 @@ jobs:
       device-type: ios
       # For iOS testing, the runner just needs to call AWS Device Farm, so there is no need to run this on macOS
       runner: linux.2xlarge
-      # TODO: TESTING https://github.com/pytorch/test-infra/pull/5770, REVERT BEFORE SUBMITTING
-      test-infra-ref: 'fix-ratelimit-mobile-jobs'
+      test-infra-ref: ''
       # This is the ARN of ExecuTorch project on AWS
       project-arn: arn:aws:devicefarm:us-west-2:308535385114:project:02a2cf0f-6d9b-45ee-ba1a-a086587469e6
       device-pool-arn: ${{ matrix.device }}
