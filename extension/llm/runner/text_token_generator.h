@@ -13,6 +13,7 @@
 #include <executorch/extension/llm/runner/text_decoder_runner.h>
 #include <executorch/extension/llm/tokenizer/tokenizer.h>
 #include <executorch/extension/tensor/tensor.h>
+#include <executorch/extension/llm/runner/util.h>
 
 namespace executorch {
 namespace extension {
@@ -127,6 +128,89 @@ class ET_EXPERIMENTAL TextTokenGenerator {
    */
   inline void stop() {
     should_stop_ = true;
+  }
+
+  inline void benchmark(
+      std::vector<uint64_t> tokens,
+      int64_t start_pos,
+      int32_t seq_len,
+      long &time_first_token) {
+    ET_CHECK_MSG(
+        !tokens.empty(), "Token generation loop shouldn't take empty tokens");
+    int64_t pos = start_pos; // position in the sequence
+
+    std::vector<uint64_t> token_data; // allocate space for the tokens
+    std::vector<executorch::aten::SizesType> token_shape;
+
+    // Token after prefill
+    uint64_t cur_token = tokens.back();
+    uint64_t prev_token;
+
+    if (use_kv_cache_) {
+      // hard code these to size 1 as kv cache is locked to static size right
+      // now.
+      token_data = {cur_token};
+      token_shape = {1, 1};
+    } else {
+      token_data = tokens;
+      token_shape = {1, static_cast<int>(tokens.size())};
+    }
+
+    // initialize tensor wrappers
+    auto tokens_managed = from_blob(
+        token_data.data(), token_shape, executorch::aten::ScalarType::Long);
+    auto start_pos_managed =
+        from_blob(&pos, {1}, executorch::aten::ScalarType::Long);
+
+    should_stop_ = false;
+
+    // Generate our tokens
+    for (int32_t i = 0; i < seq_len; i++) {
+      // Run the model
+      auto logits_res =
+          text_decoder_runner_->step(tokens_managed, start_pos_managed);
+
+      if (i == 0) {
+        time_first_token = llm::time_in_ms();
+      }
+
+      ET_CHECK_OK_OR_RETURN_ERROR(logits_res.error());
+      executorch::aten::Tensor& logits_tensor = logits_res.get();
+
+      prev_token = cur_token;
+
+      stats_->on_sampling_begin();
+      cur_token = text_decoder_runner_->logits_to_token(logits_tensor);
+      stats_->on_sampling_end();
+
+      pos++;
+
+      if (use_kv_cache_) {
+        // update the token tensor. token_data will not be empty.
+        // NOLINTNEXTLINE(facebook-hte-LocalUncheckedArrayBounds)
+        token_data[0] = cur_token;
+      } else {
+        // push it to the back
+        token_data.push_back(cur_token);
+        ET_CHECK_OK_OR_RETURN_ERROR(resize_tensor_ptr(
+            tokens_managed, {1, static_cast<int>(token_data.size())}));
+      }
+
+      // print the token as string, decode it with the Tokenizer object
+      ET_UNWRAP(tokenizer_->decode(prev_token, cur_token));
+
+      // if (should_stop_) {
+      //   break;
+      // }
+
+      // // data-dependent terminating condition: we have n_eos_ number of EOS
+      // if (eos_ids_->find(cur_token) != eos_ids_->end()) {
+      //   printf("\n");
+      //   ET_LOG(Info, "\nReached to the end of generation");
+      //   break;
+      // }
+    }
+    return ;
   }
 
  private:

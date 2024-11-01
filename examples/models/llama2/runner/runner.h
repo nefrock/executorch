@@ -43,6 +43,8 @@ class ET_EXPERIMENTAL Runner {
           stats_callback = {},
       bool echo = true);
   void stop();
+  ::executorch::runtime::Error benchmark(
+    int pp, int tg, long &t_pp, long &t_tg, long &et);
 
  private:
   float temperature_;

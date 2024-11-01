@@ -9,6 +9,7 @@
 #include <cassert>
 #include <chrono>
 #include <iostream>
+#include <iomanip>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -60,6 +61,12 @@ class ExecuTorchLlamaCallbackJni
 
     method(self(), tps);
     print_log(result);
+  }
+
+  void onBenchmark(double pp_avg, double pp_std, double tg_avg, double tg_std, double et_avg, double et_std) const {
+    static auto cls = ExecuTorchLlamaCallbackJni::javaClassStatic();
+    static const auto method = cls->getMethod<void(jfloat, jfloat, jfloat, jfloat, jfloat, jfloat)>("onBenchmark");
+    method(self(), pp_avg, pp_std, tg_avg, tg_std, et_avg, et_std);
   }
 };
 
@@ -256,6 +263,55 @@ class ExecuTorchLlamaJni
     return static_cast<jint>(Error::InvalidArgument);
   }
 
+  jint benchmark(
+      facebook::jni::alias_ref<ExecuTorchLlamaCallbackJni> callback,
+      jint pp,
+      jint tg,
+      jint nr) {
+    double pp_avg = 0.0;
+    double tg_avg = 0.0;
+    double et_avg = 0.0;
+    double pp_std = 0.0;
+    double tg_std = 0.0;
+    double et_std = 0.0;
+
+    int nri;
+    for (nri = 0; nri < nr; nri++) {
+      long t_pp = 0, t_tg = 0, et = 0;
+      Error status = runner_->benchmark(pp, tg, t_pp, t_tg, et);
+
+      const auto speed_pp = double(pp) / t_pp * 1000;
+      const auto speed_tg = double(tg) / t_tg * 1000;
+      const auto elapsed_time = double(et) / 1000.0;
+
+      pp_avg += speed_pp;
+      tg_avg += speed_tg;
+      et_avg += elapsed_time;
+
+      pp_std += speed_pp * speed_pp;
+      tg_std += speed_tg * speed_tg;
+      et_std += elapsed_time * elapsed_time;
+    }
+
+    pp_avg /= double(nr);
+    tg_avg /= double(nr);
+    et_avg /= double(nr);
+
+    if (nr > 1) {
+        pp_std = sqrt(pp_std / double(nr - 1) - pp_avg * pp_avg * double(nr) / double(nr - 1));
+        tg_std = sqrt(tg_std / double(nr - 1) - tg_avg * tg_avg * double(nr) / double(nr - 1));
+        et_std = sqrt(et_std / double(nr - 1) - et_avg * et_avg * double(nr) / double(nr - 1));
+    } else {
+        pp_std = 0;
+        tg_std = 0;
+        et_std = 0;
+    }
+
+    callback->onBenchmark(pp_avg, pp_std, tg_avg, tg_std, et_avg, et_std);
+
+    return 0;
+  }
+
   static void registerNatives() {
     registerHybrid({
         makeNativeMethod("initHybrid", ExecuTorchLlamaJni::initHybrid),
@@ -268,6 +324,7 @@ class ExecuTorchLlamaJni
             "prefillPromptNative", ExecuTorchLlamaJni::prefill_prompt),
         makeNativeMethod(
             "generateFromPos", ExecuTorchLlamaJni::generate_from_pos),
+        makeNativeMethod("benchmark", ExecuTorchLlamaJni::benchmark),
     });
   }
 };

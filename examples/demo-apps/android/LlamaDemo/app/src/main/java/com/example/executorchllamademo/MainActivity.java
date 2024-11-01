@@ -106,6 +106,16 @@ public class MainActivity extends AppCompatActivity implements Runnable, LlamaCa
         });
   }
 
+  @Override
+  public void onBenchmark(float pp_avg, float pp_std, float tg_avg, float tg_std, float et_avg, float et_std) {
+    Message benchResultMessage = new Message(String.format("pp: %.2f±%.2f, tg: %.2f±%.2f, elapsed time: %.2f±%.2f s", pp_avg, pp_std, tg_avg, tg_std, et_avg, et_std), false, MessageType.SYSTEM, 0);
+    runOnUiThread(
+        () -> {
+          mMessageAdapter.add(benchResultMessage);
+          mMessageAdapter.notifyDataSetChanged();
+        });
+  }
+
   private void setLocalModel(String modelPath, String tokenizerPath, float temperature) {
     if (mModule != null) {
       mModule.resetNative();
@@ -745,6 +755,62 @@ public class MainActivity extends AppCompatActivity implements Runnable, LlamaCa
                   ETLogging.getInstance().log("Inference completed");
                 }
               };
+
+          if (rawPrompt.isEmpty()) {
+            runnable =
+              new Runnable() {
+                @Override
+                public void run() {
+                  Process.setThreadPriority(Process.THREAD_PRIORITY_MORE_FAVORABLE);
+                  ETLogging.getInstance().log("Starting benchmark");
+                  runOnUiThread(
+                      new Runnable() {
+                        @Override
+                        public void run() {
+                          onModelRunStarted();
+                        }
+                      });
+                  if (ModelUtils.getModelCategory(mCurrentSettingsFields.getModelType())
+                      == ModelUtils.VISION_MODEL) {
+                        Log.d("Benchmark", "Not supported");
+                        Message benchErrorMessage = new Message("Failed to run benchmark (Not support benchmark for model)", false, MessageType.SYSTEM, 0);
+                        runOnUiThread(
+                            () -> {
+                              mSendButton.setEnabled(true);
+                              mMessageAdapter.add(benchErrorMessage);
+                              mMessageAdapter.notifyDataSetChanged();
+                            });
+                  } else if (mCurrentSettingsFields.getModelType() == ModelType.LLAMA_GUARD_3) {
+                        Log.d("Benchmark", "Not supported");
+                        Message benchErrorMessage = new Message("Failed to run benchmark (Not support benchmark for model)", false, MessageType.SYSTEM, 0);
+                        runOnUiThread(
+                            () -> {
+                              mSendButton.setEnabled(true);
+                              mMessageAdapter.add(benchErrorMessage);
+                              mMessageAdapter.notifyDataSetChanged();
+                            });
+                  } else {
+                    mModule.benchmark(MainActivity.this, 8, 4, 1);
+                    Message benchWarmupMessage = new Message("Finished warming up, please wait...", false, MessageType.SYSTEM, 0);
+                    runOnUiThread(
+                        () -> {
+                          mMessageAdapter.add(benchWarmupMessage);
+                          mMessageAdapter.notifyDataSetChanged();
+                        });
+                    mModule.benchmark(MainActivity.this, 512, 64, 3);
+                  }
+
+                  runOnUiThread(
+                      new Runnable() {
+                        @Override
+                        public void run() {
+                          onModelRunStopped();
+                        }
+                      });
+                  ETLogging.getInstance().log("Benchmark completed");
+                }
+              };
+          }
           executor.execute(runnable);
         });
     mMessageAdapter.notifyDataSetChanged();

@@ -35,4 +35,17 @@ public interface LlamaCallback {
    */
   @DoNotStrip
   public void onStats(float tps);
+
+  /**
+   * Called when a new banchmark result is available from JNI. Users will keep getting onBenchmark() invocations
+   *
+   * @param pp_avg Average tokens/second for prompt processing.
+   * @param pp_std
+   * @param tg_avg Average tokens/second for text generation.
+   * @param tg_std
+   * @param et_avg Average elapsed time.
+   * @param et_std
+   */
+  @DoNotStrip
+  public void onBenchmark(float pp_avg, float pp_std, float tg_avg, float tg_std, float et_avg, float et_std);
 }

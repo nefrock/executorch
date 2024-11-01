@@ -68,6 +68,11 @@ public class PerfTest implements LlamaCallback {
     tokensPerSecond.add(tps);
   }
 
+  @Override
+  public void onBenchmark(float pp_avg, float pp_std, float tg_avg, float tg_std) {
+    return ;
+  }
+
   private void report(final String metric, final Float value) {
     Bundle bundle = new Bundle();
     bundle.putFloat(metric, value);

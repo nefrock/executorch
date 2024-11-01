@@ -71,6 +71,11 @@ public class ModelRunner implements LlamaCallback {
   public void onStats(float tps) {
     mCallback.onStats("tokens/second: " + tps);
   }
+
+  @Override
+  public void onBenchmark(float pp_avg, float pp_std, float tg_avg, float tg_std, float et_avg, float et_std) {
+    return ;
+  }
 }
 
 class ModelRunnerHandler extends Handler {
