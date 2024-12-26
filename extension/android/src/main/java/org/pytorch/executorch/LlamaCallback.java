@@ -35,4 +35,7 @@ public interface LlamaCallback {
    */
   @DoNotStrip
   public void onStats(float tps);
+
+  @DoNotStrip
+  public void onBenchmark(float pp_avg, float pp_std, float tg_avg, float tg_std, float et_avg, float et_std);
 }

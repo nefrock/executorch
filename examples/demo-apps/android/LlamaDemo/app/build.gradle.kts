@@ -72,7 +72,7 @@ dependencies {
 tasks.register("setup") {
   doFirst {
     exec {
-      commandLine("sh", "examples/demo-apps/android/LlamaDemo/setup.sh")
+      commandLine("bash", "examples/demo-apps/android/LlamaDemo/setup.sh")
       workingDir("../../../../../")
     }
   }
@@ -81,7 +81,7 @@ tasks.register("setup") {
 tasks.register("setupQnn") {
   doFirst {
     exec {
-      commandLine("sh", "examples/demo-apps/android/LlamaDemo/setup-with-qnn.sh")
+      commandLine("bash", "examples/demo-apps/android/LlamaDemo/setup-with-qnn.sh")
       workingDir("../../../../../")
     }
   }
@@ -90,7 +90,7 @@ tasks.register("setupQnn") {
 tasks.register("download_prebuilt_lib") {
   doFirst {
     exec {
-      commandLine("sh", "examples/demo-apps/android/LlamaDemo/download_prebuilt_lib.sh")
+      commandLine("bash", "examples/demo-apps/android/LlamaDemo/download_prebuilt_lib.sh")
       workingDir("../../../../../")
     }
   }

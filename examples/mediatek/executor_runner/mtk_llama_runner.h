@@ -49,6 +49,7 @@ class MTKLlamaRunner : public executorch::extension::llm::IRunner {
       bool echo = true,
       bool warming = false);
   void stop();
+  Error benchmark(int pp, int tg, long &t_pp, long &t_tg, long &et) { Error::Ok; }
 
   LlamaModelOptions get_model_options();
   LlamaModelPaths get_model_paths();

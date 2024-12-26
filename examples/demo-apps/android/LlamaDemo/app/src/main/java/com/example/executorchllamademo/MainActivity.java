@@ -107,6 +107,18 @@ public class MainActivity extends AppCompatActivity implements Runnable, LlamaCa
         });
   }
 
+  @Override
+  public void onBenchmark(float pp_avg, float pp_std, float tg_avg, float tg_std, float et_avg, float et_std) {
+    Message benchResultMessage = new Message(
+      String.format("pp: %.2f±%.2f, tg: %.2f±%.2f, elapsed time: %.2f±%.2f s",pp_avg, pp_std, tg_avg, tg_std, et_avg, et_std),
+      false, MessageType.SYSTEM, 0);
+    runOnUiThread(
+        () -> {
+          mMessageAdapter.add(benchResultMessage);
+          mMessageAdapter.notifyDataSetChanged();
+        });
+  }
+
   private void setLocalModel(String modelPath, String tokenizerPath, float temperature) {
     Message modelLoadingMessage = new Message("Loading model...", false, MessageType.SYSTEM, 0);
     ETLogging.getInstance().log("Loading model " + modelPath + " with tokenizer " + tokenizerPath);
@@ -665,13 +677,14 @@ public class MainActivity extends AppCompatActivity implements Runnable, LlamaCa
   }
 
   private String getTotalFormattedPrompt(String conversationHistory, String rawPrompt) {
-    if (conversationHistory.isEmpty()) {
-      return mCurrentSettingsFields.getFormattedSystemAndUserPrompt(rawPrompt);
-    }
+    return mCurrentSettingsFields.getFormattedSystemAndUserPrompt(rawPrompt);
+    // if (conversationHistory.isEmpty()) {
+    //   return mCurrentSettingsFields.getFormattedSystemAndUserPrompt(rawPrompt);
+    // }
 
-    return mCurrentSettingsFields.getFormattedSystemPrompt()
-        + conversationHistory
-        + mCurrentSettingsFields.getFormattedUserPrompt(rawPrompt);
+    // return mCurrentSettingsFields.getFormattedSystemPrompt()
+    //     + conversationHistory
+    //     + mCurrentSettingsFields.getFormattedUserPrompt(rawPrompt);
   }
 
   private void onModelRunStarted() {
@@ -753,11 +766,20 @@ public class MainActivity extends AppCompatActivity implements Runnable, LlamaCa
                         false);
                   } else {
                     ETLogging.getInstance().log("Running inference.. prompt=" + finalPrompt);
-                    mModule.generate(
+                    int status = mModule.generate(
                         finalPrompt,
                         (int) (finalPrompt.length() * 0.75) + 64,
                         MainActivity.this,
                         false);
+                    if (status != 0) {
+                      Message inferenceErrorMessage = new Message("Failed to generate sentence", false, MessageType.SYSTEM, 0);
+                      runOnUiThread(
+                          () -> {
+                            mSendButton.setEnabled(true);
+                            mMessageAdapter.add(inferenceErrorMessage);
+                            mMessageAdapter.notifyDataSetChanged();
+                          });
+                    }
                   }
 
                   long generateDuration = System.currentTimeMillis() - generateStartTime;
@@ -772,6 +794,65 @@ public class MainActivity extends AppCompatActivity implements Runnable, LlamaCa
                   ETLogging.getInstance().log("Inference completed");
                 }
               };
+
+          if (rawPrompt.isEmpty()) {
+            runnable =
+                new Runnable() {
+                  @Override
+                  public void run() {
+                    Process.setThreadPriority(Process.THREAD_PRIORITY_MORE_FAVORABLE);
+                    ETLogging.getInstance().log("starting runnable generate()");
+                    runOnUiThread(
+                        new Runnable() {
+                          @Override
+                          public void run() {
+                            onModelRunStarted();
+                          }
+                        });
+                    long generateStartTime = System.currentTimeMillis();
+                    if (ModelUtils.getModelCategory(
+                            mCurrentSettingsFields.getModelType(),
+                            mCurrentSettingsFields.getBackendType())
+                        == ModelUtils.VISION_MODEL) {
+                      Log.d("Benchmark", "Not suppoted");
+                      Message benchErrorMessage = new Message("Failed to run benchmark (Not support benchmark for model)", false, MessageType.SYSTEM, 0);
+                      runOnUiThread(
+                          () -> {
+                            mSendButton.setEnabled(true);
+                            mMessageAdapter.add(benchErrorMessage);
+                            mMessageAdapter.notifyDataSetChanged();
+                          });
+                    } else if (mCurrentSettingsFields.getModelType() == ModelType.LLAMA_GUARD_3) {
+                      Log.d("Benchmark", "Not supported");
+                      Message benchErrorMessage = new Message("Failed to run benchmark (Not support benchmark for model)", false, MessageType.SYSTEM, 0);
+                      runOnUiThread(
+                          () -> {
+                            mSendButton.setEnabled(true);
+                            mMessageAdapter.add(benchErrorMessage);
+                            mMessageAdapter.notifyDataSetChanged();
+                          });
+                    } else {
+                      mModule.benchmark(MainActivity.this, 8, 4, 1);
+                      Message benchWarmupMessage = new Message("Finished warming up, please wait...", false, MessageType.SYSTEM, 0);
+                      runOnUiThread(
+                          () -> {
+                            mMessageAdapter.add(benchWarmupMessage);
+                            mMessageAdapter.notifyDataSetChanged();
+                          });
+                      mModule.benchmark(MainActivity.this, 512, 256, 3);
+                    }
+
+                    runOnUiThread(
+                        new Runnable() {
+                          @Override
+                          public void run() {
+                            onModelRunStopped();
+                          }
+                        });
+                    ETLogging.getInstance().log("Benchmark completed");
+                  }
+                };
+          }
           executor.execute(runnable);
         });
     mMessageAdapter.notifyDataSetChanged();

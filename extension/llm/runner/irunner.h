@@ -43,6 +43,9 @@ class ET_EXPERIMENTAL IRunner {
 
   // Stop the generation.
   virtual void stop() = 0;
+
+  virtual ::executorch::runtime::Error benchmark(
+    int pp, int tg, long &t_pp, long &t_tg, long &et) = 0;
 };
 
 } // namespace llm

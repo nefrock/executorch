@@ -187,4 +187,7 @@ public class LlamaModule {
   /** Force loading the module. Otherwise the model is loaded during first generate(). */
   @DoNotStrip
   public native int load();
+
+  @DoNotStrip
+  public native int benchmark(LlamaCallback llamaCallback, int pp, int tg, int nr);
 }

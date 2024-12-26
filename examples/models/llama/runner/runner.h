@@ -48,6 +48,8 @@ class ET_EXPERIMENTAL Runner : public executorch::extension::llm::IRunner {
       const std::string& prompt,
       int32_t seq_len = 128);
   void stop();
+  ::executorch::runtime::Error benchmark(
+    int pp, int tg, long &t_pp, long &t_tg, long &et);
 
  private:
   float temperature_;

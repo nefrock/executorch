@@ -207,15 +207,15 @@ Error Runner::generate(
   std::vector<uint64_t> prompt_tokens = encode_res.get();
   int num_prompt_tokens = prompt_tokens.size();
 
-  ET_CHECK_MSG(num_prompt_tokens >= 1, "Expected at least 1 prompt token");
-  ET_CHECK_MSG(
-      num_prompt_tokens < metadata_.at(kMaxSeqLen),
+  ET_CHECK_OR_RETURN_ERROR(num_prompt_tokens >= 1, Internal, "Expected at least 1 prompt token");
+  ET_CHECK_OR_RETURN_ERROR(
+      num_prompt_tokens < metadata_.at(kMaxSeqLen), Internal,
       "num_prompt_tokens %d >= max_seq_len_ %" PRId64
       ", Max seq length exceeded - please increase max seq len value in .../llama2/model.py",
       num_prompt_tokens,
       metadata_.at(kMaxSeqLen));
-  ET_CHECK_MSG(
-      num_prompt_tokens < seq_len,
+  ET_CHECK_OR_RETURN_ERROR(
+      num_prompt_tokens < seq_len, Internal,
       "num_prompt_tokens %d >= seq_len %d, Sequence length exceeded - please increase the seq_len value passed to generate()",
       num_prompt_tokens,
       seq_len);
@@ -294,5 +294,42 @@ void Runner::stop() {
   } else {
     ET_LOG(Error, "Token generator is not loaded, cannot stop");
   }
+}
+
+Error Runner::benchmark(
+    int pp, int tg, long &t_pp, long &t_tg, long &et) {
+  long start_pp = llm::time_in_ms(), start_tg;
+  auto prompt_tokens = std::vector<uint64_t>(pp, 0);
+
+  ET_CHECK_OR_RETURN_ERROR(pp >= 1, Internal, "Expected at least 1 prompt token");
+  ET_CHECK_OR_RETURN_ERROR(
+      pp < metadata_.at(kMaxSeqLen), Internal,
+      "num_prompt_tokens %d >= max_seq_len_ %" PRId64
+      ", Max seq length exceeded - please increase max seq len value in .../llama2/model.py",
+      pp,
+      metadata_.at(kMaxSeqLen));
+
+  int64_t pos = 0;
+  auto prefill_res = text_prefiller_->prefill(prompt_tokens, pos);
+  ET_CHECK_OK_OR_RETURN_ERROR(prefill_res.error());
+
+  uint64_t cur_token = prefill_res.get();
+
+  ET_UNWRAP(tokenizer_->decode(cur_token, cur_token));
+  ET_LOG(
+      Info,
+      "RSS after prompt prefill: %f MiB (0 if unsupported)",
+      llm::get_rss_bytes() / 1024.0 / 1024.0);
+
+  // start the main loop
+  prompt_tokens.push_back(cur_token);
+
+  text_token_generator_->benchmark(prompt_tokens, pp, tg, start_tg);
+
+  t_pp = start_tg - start_pp;
+  t_tg = llm::time_in_ms() - start_tg;
+  et = llm::time_in_ms() - start_pp;
+
+  return Error::Ok;
 }
 } // namespace example
