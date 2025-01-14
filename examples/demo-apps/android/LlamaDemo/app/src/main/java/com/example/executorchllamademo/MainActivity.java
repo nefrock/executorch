@@ -79,6 +79,7 @@ public class MainActivity extends AppCompatActivity implements Runnable, LlamaCa
   private long startPos = 0;
   private static final int CONVERSATION_HISTORY_MESSAGE_LOOKBACK = 2;
   private Executor executor;
+  private long MemPeek = -1;
 
   @Override
   public void onResult(String result) {
@@ -110,7 +111,7 @@ public class MainActivity extends AppCompatActivity implements Runnable, LlamaCa
   @Override
   public void onBenchmark(float pp_avg, float pp_std, float tg_avg, float tg_std, float et_avg, float et_std) {
     Message benchResultMessage = new Message(
-      String.format("pp: %.2f±%.2f, tg: %.2f±%.2f, elapsed time: %.2f±%.2f s",pp_avg, pp_std, tg_avg, tg_std, et_avg, et_std),
+      String.format("pp: %.2f±%.2f, tg: %.2f±%.2f, elapsed time: %.2f±%.2f s, mem peek: %d MB", pp_avg, pp_std, tg_avg, tg_std, et_avg, et_std, MemPeek),
       false, MessageType.SYSTEM, 0);
     runOnUiThread(
         () -> {
@@ -478,6 +479,9 @@ public class MainActivity extends AppCompatActivity implements Runnable, LlamaCa
     long totalMem = memoryInfo.totalMem / (1024 * 1024);
     long availableMem = memoryInfo.availMem / (1024 * 1024);
     long usedMem = totalMem - availableMem;
+    if (MemPeek >= 0 && MemPeek < usedMem) {
+      MemPeek = usedMem;
+    }
     return usedMem + "MB";
   }
 
@@ -839,7 +843,9 @@ public class MainActivity extends AppCompatActivity implements Runnable, LlamaCa
                             mMessageAdapter.add(benchWarmupMessage);
                             mMessageAdapter.notifyDataSetChanged();
                           });
+                      MemPeek = 0;
                       mModule.benchmark(MainActivity.this, 512, 256, 3);
+                      MemPeek = -1;
                     }
 
                     runOnUiThread(
